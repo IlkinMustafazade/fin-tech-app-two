@@ -1,11 +1,9 @@
 package com.mustafazada.techapptwo.service;
 
+import com.mustafazada.techapptwo.config.security.JwtUtil;
 import com.mustafazada.techapptwo.dto.request.AuthenticationRequestDTO;
 import com.mustafazada.techapptwo.dto.request.UserRequestDTO;
-import com.mustafazada.techapptwo.dto.response.CommonResponseDTO;
-import com.mustafazada.techapptwo.dto.response.Status;
-import com.mustafazada.techapptwo.dto.response.StatusCode;
-import com.mustafazada.techapptwo.dto.response.UserResponseDTO;
+import com.mustafazada.techapptwo.dto.response.*;
 import com.mustafazada.techapptwo.entity.TechUser;
 import com.mustafazada.techapptwo.exception.NoSuchUserExistException;
 import com.mustafazada.techapptwo.exception.UserAlreadyExist;
@@ -14,6 +12,8 @@ import com.mustafazada.techapptwo.util.DTOUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +31,12 @@ public class UserService {
 
     @Autowired
     private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private UserDetailsService userDetailsService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     public CommonResponseDTO<?> saveUser(UserRequestDTO userRequestDTO) {
         dtoUtil.isValid(userRequestDTO);
@@ -73,10 +79,12 @@ public class UserService {
                             .message("There is no User with this pin: " + authenticationRequestDTO.getPin())
                             .build()).build()).build();
         }
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(authenticationRequestDTO.getPin());
         return CommonResponseDTO.builder()
-                .data(authenticationRequestDTO)
+                .data(AuthenticationResponseDTO.builder().tokenForUser(jwtUtil.createToken(userDetails)).build())
                 .status(Status.builder()
                         .statusCode(StatusCode.SUCCESS)
-                        .message("Welcome to our Fin-tech Application").build()).build();
+                        .message("Token was created successfully").build()).build();
     }
 }
